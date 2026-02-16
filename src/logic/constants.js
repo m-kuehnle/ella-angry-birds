@@ -1,0 +1,48 @@
+// Shared constants across all game modules.
+
+export const SLING = {
+  GRAB_RADIUS: 100,
+  MAX_PULL: 160,
+  LAUNCH_POWER: 20,
+  MIN_LAUNCH_DISTANCE: 15,
+  X: 260,
+  FORK_OFFSET_X: 20,
+  FORK_OFFSET_Y: 42,
+  ANCHOR_OFFSET_Y: 30,
+  WOOD_SCALE_X: 0.28,
+  WOOD_SCALE_Y: 0.95,
+};
+
+export const PHYSICS = {
+  TOMATO_IMPACT_THRESHOLD: 8.5,
+  BLOCK_IMPACT_THRESHOLD: 12,
+  BLOCK_BREAK_THRESHOLD: 35,
+  BLOCK_BASE_HEALTH: 100,
+  COLLISION_COOLDOWN_MS: 200,
+  COLLISION_GRACE_MS: 1200,
+};
+
+export const STRUCTURE = {
+  BLOCK_SPACING: 55,
+  GROUND_OFFSET_Y: 50,
+  LEVEL_OFFSET_PERCENT: 0.18,
+};
+
+export const TIMING = {
+  APPLE_CLEANUP_DELAY: 8000,
+  SPAWN_NEXT_APPLE_DELAY: 600,
+  GAME_STATE_CHECK_DELAY: 3500,
+};
+
+export const SCORE = {
+  TOMATO: 100,
+  KING_TOMATO: 300,
+  APPLE_BONUS: 500,
+};
+
+export const SPRITE_SIZES = {
+  stonebrick: { w: 60, h: 55 },
+  woodstick: { w: 80, h: 40 },
+};
+
+export const HOT_CHOCOLATE_RADIUS = 300;
