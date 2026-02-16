@@ -33,6 +33,197 @@ export default class GameScene extends Phaser.Scene {
     super({ key: "GameScene" });
     // Always use background2
     this.selectedBackground = "background2";
+
+    // Initialize sound system
+    this.initSounds();
+  }
+
+  initSounds() {
+    // Create simple sound effects using Web Audio API
+    this.createLaunchSound();
+    this.createImpactSound();
+    this.createBreakSound();
+    this.createVictorySound();
+  }
+
+  createLaunchSound() {
+    // Slingshot launch sound - quick ascending tone
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+      this.launchSound = { oscillator, gainNode, audioContext, ready: true };
+    } catch (e) {
+      this.launchSound = { ready: false };
+    }
+  }
+
+  createImpactSound() {
+    // Impact sound - short noise burst
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const bufferSize = audioContext.sampleRate * 0.1;
+      const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+      }
+
+      const source = audioContext.createBufferSource();
+      const gainNode = audioContext.createGain();
+
+      source.buffer = buffer;
+      source.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+
+      this.impactSound = { source, gainNode, audioContext, ready: true };
+    } catch (e) {
+      this.impactSound = { ready: false };
+    }
+  }
+
+  createBreakSound() {
+    // Breaking sound - descending tone with noise
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.3);
+
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+      this.breakSound = { oscillator, gainNode, audioContext, ready: true };
+    } catch (e) {
+      this.breakSound = { ready: false };
+    }
+  }
+
+  createVictorySound() {
+    // Victory sound - ascending melody
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+
+      this.victorySound = { notes: [], audioContext, ready: true };
+
+      notes.forEach((frequency, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(frequency * 1.5, audioContext.currentTime + 0.1);
+
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+        this.victorySound.notes.push({ oscillator, gainNode });
+      });
+    } catch (e) {
+      this.victorySound = { ready: false };
+    }
+  }
+
+  playLaunchSound() {
+    if (this.launchSound && this.launchSound.ready) {
+      try {
+        const { oscillator, gainNode, audioContext } = this.launchSound;
+        const currentTime = audioContext.currentTime;
+
+        oscillator.frequency.setValueAtTime(200, currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(400, currentTime + 0.1);
+
+        gainNode.gain.setValueAtTime(0.1, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.1);
+
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.1);
+      } catch (e) {
+        // Sound failed, continue silently
+      }
+    }
+  }
+
+  playImpactSound() {
+    if (this.impactSound && this.impactSound.ready) {
+      try {
+        const { source, gainNode, audioContext } = this.impactSound;
+        const currentTime = audioContext.currentTime;
+
+        gainNode.gain.setValueAtTime(0.3, currentTime);
+
+        source.start(currentTime);
+      } catch (e) {
+        // Sound failed, continue silently
+      }
+    }
+  }
+
+  playBreakSound() {
+    if (this.breakSound && this.breakSound.ready) {
+      try {
+        const { oscillator, gainNode, audioContext } = this.breakSound;
+        const currentTime = audioContext.currentTime;
+
+        oscillator.frequency.setValueAtTime(300, currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(100, currentTime + 0.3);
+
+        gainNode.gain.setValueAtTime(0.2, currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.3);
+
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.3);
+      } catch (e) {
+        // Sound failed, continue silently
+      }
+    }
+  }
+
+  playVictorySound() {
+    if (this.victorySound && this.victorySound.ready) {
+      try {
+        const { notes, audioContext } = this.victorySound;
+        let currentTime = audioContext.currentTime;
+
+        notes.forEach((note, index) => {
+          const { oscillator, gainNode } = note;
+
+          oscillator.frequency.setValueAtTime([261.63, 329.63, 392.00, 523.25][index], currentTime);
+          oscillator.frequency.setValueAtTime([261.63, 329.63, 392.00, 523.25][index] * 1.5, currentTime + 0.1);
+
+          gainNode.gain.setValueAtTime(0.1, currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.2);
+
+          oscillator.start(currentTime);
+          oscillator.stop(currentTime + 0.2);
+
+          currentTime += 0.15;
+        });
+      } catch (e) {
+        // Sound failed, continue silently
+      }
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -144,14 +335,10 @@ export default class GameScene extends Phaser.Scene {
   }
 
   loadLevel(levelNumber) {
-    let levelData = levels[levelNumber - 1];
-
-    // If level doesn't exist, generate a random one for infinite play
+    const levelData = levels[levelNumber - 1];
     if (!levelData) {
-      console.log(
-        `Level ${levelNumber} not found in presets, generating random level.`,
-      );
-      levelData = this.generateRandomLevel(levelNumber);
+      console.error("Level not found:", levelNumber);
+      return;
     }
 
     this.applesRemaining = levelData.apples;
@@ -177,10 +364,7 @@ export default class GameScene extends Phaser.Scene {
     // Create tomatoes
     let createdTomatoes = 0;
     levelData.tomatoes.forEach((tomato, index) => {
-      // Find the planned position for this tomato (might have been adjusted by rules)
       const planned = tomatoPlacements?.get(index);
-
-      // If the rule engine decided not to place this tomato (e.g. overlap), skip it
       if (!planned) return;
 
       const tomatoSprite = this.matter.add.sprite(
@@ -195,87 +379,13 @@ export default class GameScene extends Phaser.Scene {
           density: 0.001,
         },
       );
-      // Use the planned scale (or original)
       tomatoSprite.setScale(planned.scale || tomato.scale || 1);
       tomatoSprite.setDepth(20);
-
-      // Store reference
       this.tomatoes.push(tomatoSprite);
-
-      // Identify king tomatoes
-      if (tomato.isKing) {
-        tomatoSprite.setData("isKing", true);
-        tomatoSprite.setTint(0xffd700); // Gold tint
-      }
-
       createdTomatoes++;
     });
 
-    // Update the actual count of tomatoes created
     this.tomatoesRemaining = createdTomatoes;
-
-    // If generation failed to place any tomatoes (rare but possible), retry
-    if (this.tomatoesRemaining === 0) {
-      console.log("Generation failed, retrying...");
-      this.loadLevel(levelNumber);
-    }
-  }
-
-  generateRandomLevel(levelNumber) {
-    // Determine difficulty params
-    const minTomatoes = Math.min(3 + Math.floor(levelNumber / 5), 6);
-    const maxTomatoes = Math.min(5 + Math.floor(levelNumber / 3), 10);
-    const numTomatoes = Phaser.Math.Between(minTomatoes, maxTomatoes);
-
-    const tomatoes = [];
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    const groundY = height - GameScene.GROUND_OFFSET_Y;
-
-    // Use a fixed coordinate range for the structures (700-950)
-    // This matches the handcrafted levels and avoids off-screen placement
-    const startX = 700;
-    const endX = 950;
-
-    // Generate random stacks
-    // We want some tomatoes to be stacked vertically, some horizontally spread
-
-    // Create 1-3 clusters
-    const numClusters = Phaser.Math.Between(1, 3);
-    const clusterCenters = [];
-    for (let i = 0; i < numClusters; i++) {
-      clusterCenters.push(Phaser.Math.Between(startX, endX));
-    }
-
-    for (let i = 0; i < numTomatoes; i++) {
-      // Pick a cluster
-      const clusterX = Phaser.Math.RND.pick(clusterCenters);
-      // Add random offset
-      const x = clusterX + Phaser.Math.Between(-40, 40);
-
-      // Y position: we start from ground and go up
-      // The generator will handle gravity/support, but we should give suggested heights
-      // roughly corresponding to "floors" (interval of ~60-80px)
-      const floor = Phaser.Math.Between(0, 3);
-      const y = groundY - floor * 80;
-
-      const isKing = i === 0; // Ensure one king
-
-      tomatoes.push({
-        x,
-        y,
-        scale: isKing ? 1.3 : 1.0,
-        isKing,
-      });
-    }
-
-    // Sort by Y (bottom up) to help generator
-    tomatoes.sort((a, b) => b.y - a.y);
-
-    return {
-      apples: Math.min(3 + Math.floor(numTomatoes / 2), 6),
-      tomatoes,
-    };
   }
 
   buildStructureFromPlan(blocks) {
@@ -387,7 +497,7 @@ export default class GameScene extends Phaser.Scene {
       slingshotY + 10,
       "ella",
     );
-    this.slingshotBase.setScale(0.72);
+    this.slingshotBase.setScale(1.2);
 
     // Wooden slingshot structure
     this.createSlingshotStructure(slingshotX, slingshotY);

@@ -51,6 +51,14 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
+    // Add Ella to the boot scene
+    const ellaImage = this.add.image(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2 + 80,
+      "ella"
+    );
+    ellaImage.setScale(1.5);
+
     // Move to menu once assets are loaded
     this.scene.start("MenuScene");
   }
