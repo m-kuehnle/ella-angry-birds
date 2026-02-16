@@ -144,10 +144,14 @@ export default class GameScene extends Phaser.Scene {
   }
 
   loadLevel(levelNumber) {
-    const levelData = levels[levelNumber - 1];
+    let levelData = levels[levelNumber - 1];
+
+    // If level doesn't exist, generate a random one for infinite play
     if (!levelData) {
-      console.error("Level not found:", levelNumber);
-      return;
+      console.log(
+        `Level ${levelNumber} not found in presets, generating random level.`,
+      );
+      levelData = this.generateRandomLevel(levelNumber);
     }
 
     this.applesRemaining = levelData.apples;
@@ -173,7 +177,10 @@ export default class GameScene extends Phaser.Scene {
     // Create tomatoes
     let createdTomatoes = 0;
     levelData.tomatoes.forEach((tomato, index) => {
+      // Find the planned position for this tomato (might have been adjusted by rules)
       const planned = tomatoPlacements?.get(index);
+
+      // If the rule engine decided not to place this tomato (e.g. overlap), skip it
       if (!planned) return;
 
       const tomatoSprite = this.matter.add.sprite(
@@ -188,13 +195,87 @@ export default class GameScene extends Phaser.Scene {
           density: 0.001,
         },
       );
+      // Use the planned scale (or original)
       tomatoSprite.setScale(planned.scale || tomato.scale || 1);
       tomatoSprite.setDepth(20);
+
+      // Store reference
       this.tomatoes.push(tomatoSprite);
+
+      // Identify king tomatoes
+      if (tomato.isKing) {
+        tomatoSprite.setData("isKing", true);
+        tomatoSprite.setTint(0xffd700); // Gold tint
+      }
+
       createdTomatoes++;
     });
 
+    // Update the actual count of tomatoes created
     this.tomatoesRemaining = createdTomatoes;
+
+    // If generation failed to place any tomatoes (rare but possible), retry
+    if (this.tomatoesRemaining === 0) {
+      console.log("Generation failed, retrying...");
+      this.loadLevel(levelNumber);
+    }
+  }
+
+  generateRandomLevel(levelNumber) {
+    // Determine difficulty params
+    const minTomatoes = Math.min(3 + Math.floor(levelNumber / 5), 6);
+    const maxTomatoes = Math.min(5 + Math.floor(levelNumber / 3), 10);
+    const numTomatoes = Phaser.Math.Between(minTomatoes, maxTomatoes);
+
+    const tomatoes = [];
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    const groundY = height - GameScene.GROUND_OFFSET_Y;
+
+    // Use a fixed coordinate range for the structures (700-950)
+    // This matches the handcrafted levels and avoids off-screen placement
+    const startX = 700;
+    const endX = 950;
+
+    // Generate random stacks
+    // We want some tomatoes to be stacked vertically, some horizontally spread
+
+    // Create 1-3 clusters
+    const numClusters = Phaser.Math.Between(1, 3);
+    const clusterCenters = [];
+    for (let i = 0; i < numClusters; i++) {
+      clusterCenters.push(Phaser.Math.Between(startX, endX));
+    }
+
+    for (let i = 0; i < numTomatoes; i++) {
+      // Pick a cluster
+      const clusterX = Phaser.Math.RND.pick(clusterCenters);
+      // Add random offset
+      const x = clusterX + Phaser.Math.Between(-40, 40);
+
+      // Y position: we start from ground and go up
+      // The generator will handle gravity/support, but we should give suggested heights
+      // roughly corresponding to "floors" (interval of ~60-80px)
+      const floor = Phaser.Math.Between(0, 3);
+      const y = groundY - floor * 80;
+
+      const isKing = i === 0; // Ensure one king
+
+      tomatoes.push({
+        x,
+        y,
+        scale: isKing ? 1.3 : 1.0,
+        isKing,
+      });
+    }
+
+    // Sort by Y (bottom up) to help generator
+    tomatoes.sort((a, b) => b.y - a.y);
+
+    return {
+      apples: Math.min(3 + Math.floor(numTomatoes / 2), 6),
+      tomatoes,
+    };
   }
 
   buildStructureFromPlan(blocks) {
